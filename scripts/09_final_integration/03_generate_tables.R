@@ -8,6 +8,7 @@
 
 suppressPackageStartupMessages({
   library(data.table)
+  library(writexl)
 })
 
 project_dir <- "/media/jaeil/ff387598-88d2-44f2-b68e-cf799d26fb68/lncRNA-GBM-TMZ"
@@ -212,8 +213,8 @@ table1_rows <- data.frame(
   stringsAsFactors = FALSE
 )
 
-out1 <- file.path(table_dir, "Table1_baseline_characteristics.tsv")
-write.table(table1_rows, out1, sep = "\t", row.names = FALSE, quote = FALSE)
+out1 <- file.path(table_dir, "Table1_baseline_characteristics.xlsx")
+write_xlsx(table1_rows, out1)
 cat(sprintf("  Saved: %s\n", out1))
 
 
@@ -253,8 +254,8 @@ table2 <- tbl2[, .(
 # Reorder: H19 first
 table2 <- table2[order(match(Gene, genes_of_interest))]
 
-out2 <- file.path(table_dir, "Table2_cox_bootstrap.tsv")
-write.table(table2, out2, sep = "\t", row.names = FALSE, quote = FALSE)
+out2 <- file.path(table_dir, "Table2_cox_bootstrap.xlsx")
+write_xlsx(as.data.frame(table2), out2)
 cat(sprintf("  Saved: %s\n", out2))
 
 # ── Print preview ──

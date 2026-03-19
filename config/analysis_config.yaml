@@ -1,0 +1,191 @@
+# ============================================================================
+# lncRNA-GBM-TMZ Analysis Configuration
+# ============================================================================
+
+# ── Project Paths ──
+project_dir: "/media/jaeil/ff387598-88d2-44f2-b68e-cf799d26fb68/lncRNA-GBM-TMZ"
+raw_data_dir: "data/raw"
+reference_dir: "data/reference"
+clinical_dir: "data/clinical"
+processed_dir: "data/processed"
+results_dir: "results"
+
+# ── Reference Genome ──
+reference:
+  genome_build: "GRCh38"
+  genome_fasta: "data/reference/genome/GRCh38.primary_assembly.genome.fa"
+  gencode_version: "v44"
+  gtf_file: "data/reference/annotation/gencode.v44.annotation.gtf"
+  star_index_dir: "data/reference/index/star"
+
+# ── TCGA Data Acquisition ──
+tcga:
+  project: "TCGA-GBM"
+  data_category: "Transcriptome Profiling"
+  data_type: "Gene Expression Quantification"
+  workflow_type: "STAR - Counts"      # GDC pre-aligned (alternative)
+  experimental_strategy: "RNA-Seq"
+  # Raw FASTQ download requires controlled access token
+  gdc_token: "data/raw/gdc-user-token.txt"   # user-provided, gitignored
+
+# ── Sample Selection ──
+sample_selection:
+  # Inclusion
+  primary_diagnosis: "Glioblastoma"
+  sample_type: "Primary Tumor"        # exclude Recurrent
+  require_tmz_treatment: true
+  require_rnaseq: true
+  # Exclusion
+  exclude_idh_mutant: true            # WHO 2021: IDH-mut = astrocytoma
+  exclude_recurrent: true
+  min_samples_per_group: 15
+
+# ── TMZ Response Definition ──
+tmz_response:
+  # Primary definition: PFS-based
+  method: "PFS"
+  responder_pfs_months: 6             # PFS >= 6 months
+  # Alternative: RANO criteria (CR/PR vs SD/PD)
+  alternative_method: "RANO"
+  # Sensitivity analysis cutoffs
+  sensitivity_cutoffs: [4, 5, 6, 7, 8]
+
+# ── QC Parameters ──
+qc:
+  min_phred_score: 20
+  min_read_length: 36
+  min_uniquely_mapped_pct: 70
+  max_rrna_pct: 5
+  min_exonic_pct: 60
+
+# ── Trimming (Trim Galore) ──
+trimming:
+  quality: 20
+  min_length: 36
+  adapter: "auto"                     # auto-detect
+  cores: 4
+
+# ── Alignment (STAR) ──
+alignment:
+  star_threads: 16
+  outFilterMultimapNmax: 20
+  alignSJoverhangMin: 8
+  outFilterMismatchNmax: 999
+  outFilterMismatchNoverReadLmax: 0.04
+  sjdbOverhang: 100                   # read_length - 1
+  ram_limit: 40000000000              # ~40GB for genome generation
+
+# ── Quantification (featureCounts) ──
+quantification:
+  threads: 8
+  feature_type: "exon"
+  attribute_type: "gene_id"
+  strandedness: 2                     # 0=unstranded, 1=stranded, 2=reversely stranded
+  count_read_pairs: true
+
+# ── lncRNA Annotation ──
+lncrna_biotypes:
+  - "lincRNA"
+  - "antisense"
+  - "sense_intronic"
+  - "sense_overlapping"
+  - "processed_transcript"
+  - "bidirectional_promoter_lncRNA"
+  - "macro_lncRNA"
+
+# ── Low-Expression Filtering ──
+filtering:
+  # lncRNA-specific (relaxed)
+  lncrna_min_cpm: 0.5
+  lncrna_min_samples_pct: 0.3        # at least 30% of samples
+  # mRNA
+  mrna_min_count: 10
+  mrna_min_total_count: 15
+
+# ── Differential Expression ──
+de_analysis:
+  tool: "DESeq2"
+  design_formula: "~ age_group + gender + MGMT_status + tmz_response"
+  contrast:
+    variable: "tmz_response"
+    numerator: "Responder"
+    denominator: "NonResponder"
+  alpha: 0.05
+  lfc_threshold: 1.0                  # |log2FC| > 1.0
+  # Relaxed threshold for lncRNA (sensitivity)
+  lfc_threshold_relaxed: 0.585        # |log2FC| > 0.585 (1.5-fold)
+
+# ── Batch Effect Correction ──
+batch_correction:
+  method: "sva"                       # sva or ComBat-seq
+  num_sv: "auto"                      # auto-determine number of surrogate variables
+
+# ── Co-expression Analysis ──
+coexpression:
+  method: "spearman"
+  cor_threshold: 0.6
+  pvalue_threshold: 0.01
+  # WGCNA parameters
+  wgcna:
+    soft_power: "auto"
+    min_module_size: 30
+    merge_cut_height: 0.25
+
+# ── Functional Enrichment ──
+enrichment:
+  go_ontology: ["BP", "MF", "CC"]
+  kegg_organism: "hsa"
+  pvalue_cutoff: 0.05
+  qvalue_cutoff: 0.1
+  min_gs_size: 10
+  max_gs_size: 500
+
+# ── ceRNA Analysis ──
+cerna:
+  mirna_lncrna_db: ["starBase", "miRcode"]
+  mirna_mrna_db: ["TargetScan", "miRDB"]
+  shared_mre_min: 3                   # minimum shared MREs
+
+# ── Survival Analysis ──
+survival:
+  endpoints: ["OS", "PFS"]
+  cutpoint_method: "surv_cutpoint"    # or "median"
+  cox_covariates: ["age", "gender", "MGMT_status", "KPS"]
+  # LASSO-Cox for prognostic signature
+  lasso:
+    nfolds: 10
+    alpha: 1                          # LASSO
+    seed: 42
+
+# ── External Validation Datasets ──
+validation:
+  datasets:
+    - name: "CGGA"
+      source: "http://www.cgga.org.cn"
+      type: "microarray_and_rnaseq"
+    - name: "Gravendeel"
+      source: "GEO:GSE16011"
+      type: "microarray"
+    - name: "REMBRANDT"
+      source: "GEO:GSE108474"
+      type: "microarray"
+
+# ── Figure Parameters ──
+figures:
+  dpi: 300
+  format: ["tiff", "pdf"]
+  width_mm: 180                       # single column: 89mm, full: 180mm
+  font_family: "Arial"
+  font_size: 12
+  color_palette:
+    responder: "#2166AC"
+    non_responder: "#B2182B"
+    upregulated: "#D73027"
+    downregulated: "#4575B4"
+    neutral: "#999999"
+
+# ── Reproducibility ──
+reproducibility:
+  random_seed: 42
+  n_bootstrap: 1000
+  n_permutations: 10000

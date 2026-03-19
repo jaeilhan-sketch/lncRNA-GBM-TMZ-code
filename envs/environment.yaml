@@ -1,0 +1,73 @@
+name: lncrna-gbm-tmz
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  # ── Core ──
+  - python=3.11
+  - r-base=4.3
+  - snakemake=7.32
+
+  # ── QC ──
+  - fastqc=0.12.1
+  - multiqc=1.19
+  - rseqc=5.0.1
+
+  # ── Trimming ──
+  - trim-galore=0.6.10
+  - cutadapt=4.6
+
+  # ── Alignment ──
+  - star=2.7.11a
+  - samtools=1.19
+  - sambamba=1.0
+
+  # ── Quantification ──
+  - subread=2.0.6        # featureCounts
+
+  # ── R / Bioconductor ──
+  - r-tidyverse=2.0
+  - r-data.table
+  - r-ggrepel
+  - r-pheatmap
+  - r-venndiagram
+  - r-gridextra
+  - r-rcolorbrewer
+  - r-scales
+  - r-writexl
+  - r-optparse
+  - bioconductor-deseq2=1.42
+  - bioconductor-edger
+  - bioconductor-limma
+  - bioconductor-clusterprofiler=4.10
+  - bioconductor-org.hs.eg.db
+  - bioconductor-annotationdbi
+  - bioconductor-rtracklayer
+  - bioconductor-genomicranges
+  - bioconductor-genomicfeatures
+  - bioconductor-complexheatmap
+  - bioconductor-enhancedvolcano
+  - bioconductor-sva
+  - bioconductor-dose
+  - bioconductor-enrichplot
+  - bioconductor-pathview
+  - bioconductor-biomart
+  - r-survival
+  - r-survminer
+  - r-glmnet
+  - r-wgcna
+  - r-ggforest
+
+  # ── Utilities ──
+  - pigz
+  - wget
+  - curl
+  - parallel
+
+  # ── GDC ──
+  - pip
+
+  - pip:
+    - gdc-client

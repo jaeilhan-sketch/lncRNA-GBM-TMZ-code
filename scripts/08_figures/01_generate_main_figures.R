@@ -100,8 +100,8 @@ res_plot$label[res_plot$gene_id %in% c(top_up$gene_id, top_down$gene_id)] <-
 
 fig2a <- ggplot(res_plot, aes(x = log2FoldChange, y = -log10(padj),
                                color = significance)) +
-  geom_point(size = 1.2, alpha = 0.6) +
-  geom_text_repel(aes(label = label), size = 3, max.overlaps = 20,
+  geom_point(size = 5, alpha = 0.6) +
+  geom_text_repel(aes(label = label), size = 4, max.overlaps = 20,
                    segment.size = 0.3) +
   scale_color_manual(values = c("NS" = colors$ns, "Up" = colors$up, "Down" = colors$down),
                      labels = c(paste0("NS (", sum(res_plot$significance == "NS"), ")"),
@@ -114,7 +114,12 @@ fig2a <- ggplot(res_plot, aes(x = log2FoldChange, y = -log10(padj),
        color = "Significance",
        title = "A") +
   theme_pub +
-  theme(legend.position = c(0.85, 0.85))
+  theme(legend.position = c(0.85, 0.85),
+        axis.text = element_text(size = 13, color = "black"),
+        axis.title = element_text(size = 16),
+        legend.text = element_text(size = 13),
+        legend.title = element_text(size = 15),
+        plot.title = element_text(size = 19, face = "bold", hjust = 0.5))
 
 save_fig(fig2a, "Fig2A_volcano", 180, 150)
 
@@ -131,7 +136,12 @@ if (nrow(sig_lncrna) > 0) {
     col = list(Response = c("Responder" = colors$responder,
                              "NonResponder" = colors$non_responder)),
     annotation_name_side = "left",
-    simple_anno_size = unit(4, "mm")
+    annotation_name_gp = gpar(fontsize = 18),
+    annotation_legend_param = list(
+      title_gp = gpar(fontsize = 20),
+      labels_gp = gpar(fontsize = 18)
+    ),
+    simple_anno_size = unit(6, "mm")
   )
 
   gene_labels <- sig_lncrna$gene_name[seq_len(top_n)]
@@ -142,17 +152,17 @@ if (nrow(sig_lncrna) > 0) {
     name = "Z-score",
     top_annotation = ha_col,
     row_labels = gene_labels,
-    row_names_gp = gpar(fontsize = 8),
+    row_names_gp = gpar(fontsize = 16),
     show_column_names = FALSE,
     cluster_rows = TRUE,
     cluster_columns = TRUE,
     col = colorRamp2(c(-2, 0, 2), c(colors$down, "white", colors$up)),
     column_title = "B",
-    column_title_gp = gpar(fontsize = 14, fontface = "bold"),
+    column_title_gp = gpar(fontsize = 28, fontface = "bold"),
     heatmap_legend_param = list(
       title = "Z-score",
-      title_gp = gpar(fontsize = 10),
-      labels_gp = gpar(fontsize = 9)
+      title_gp = gpar(fontsize = 20),
+      labels_gp = gpar(fontsize = 18)
     )
   )
 
@@ -170,58 +180,88 @@ cat("  Figure 2 saved.\n")
 
 
 # ============================================================================
-# Figure 3: Top Candidate Detail
+# Figure 3: Top Candidate Detail (H19 + LINC01936, 4-panel)
 # ============================================================================
-cat("[3/6] Figure 3: Top candidate lncRNA detail...\n")
+cat("[3/6] Figure 3: Top candidate lncRNAs (H19 & LINC01936)...\n")
 
 if (nrow(sig_lncrna) > 0 && nrow(km_df) > 0) {
-  # Pick the top candidate (best survival + DE)
-  best <- km_df[km_df$km_pvalue == min(km_df$km_pvalue, na.rm = TRUE), ][1, ]
-  gene_id <- best$gene_id
-  gene_name <- best$gene_name
 
-  expr_vals <- as.numeric(assay(vsd_lncrna)[gene_id, ])
-  surv_data_plot <- col_data
-  surv_data_plot$expression <- expr_vals
+  # Figure 3 theme: 1.5x text sizes
+  theme_fig3 <- theme_classic(base_size = 18) +
+    theme(
+      text = element_text(family = "sans"),
+      axis.text = element_text(size = 15, color = "black"),
+      axis.title = element_text(size = 18),
+      legend.text = element_text(size = 15),
+      legend.title = element_text(size = 17),
+      plot.title = element_text(size = 21, face = "bold", hjust = 0.5),
+      strip.text = element_text(size = 17, face = "bold"),
+      panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5)
+    )
 
-  # ── 3A: Boxplot ──
-  fig3a <- ggplot(surv_data_plot, aes(x = tmz_response, y = expression,
-                                       fill = tmz_response)) +
-    geom_boxplot(outlier.shape = NA, alpha = 0.7, width = 0.6) +
-    geom_jitter(width = 0.15, size = 2, alpha = 0.5) +
-    scale_fill_manual(values = c("NonResponder" = colors$non_responder,
-                                  "Responder" = colors$responder)) +
-    labs(x = "", y = "Normalized Expression (VST)",
-         title = paste0("A: ", gene_name)) +
-    theme_pub +
-    theme(legend.position = "none")
+  # Helper function to create boxplot + KM for a given gene
+  make_candidate_panels <- function(gene_name_target, panel_prefix) {
+    gene_row <- km_df[km_df$gene_name == gene_name_target, ]
+    gene_id <- gene_row$gene_id[1]
 
-  # ── 3B: KM curve ──
-  surv_data_plot$os_time <- as.numeric(surv_data_plot$os_days)
-  surv_data_plot$os_status <- as.numeric(surv_data_plot$os_status)
-  surv_data_plot <- surv_data_plot[!is.na(surv_data_plot$os_time), ]
-  surv_data_plot$group <- ifelse(surv_data_plot$expression > median(surv_data_plot$expression),
-                                  "High", "Low")
+    expr_vals <- as.numeric(assay(vsd_lncrna)[gene_id, ])
+    surv_data_plot <- col_data
+    surv_data_plot$expression <- expr_vals
 
-  fit <- survfit(Surv(os_time, os_status) ~ group, data = surv_data_plot)
-  fig3b <- ggsurvplot(
-    fit, data = surv_data_plot,
-    pval = TRUE, risk.table = TRUE,
-    palette = c(colors$low, colors$high),
-    title = paste0("B: ", gene_name, " - Overall Survival"),
-    xlab = "Time (days)", ylab = "Survival Probability",
-    legend.labs = c("High expression", "Low expression"),
-    ggtheme = theme_pub
-  )
+    # Boxplot
+    p_box <- ggplot(surv_data_plot, aes(x = tmz_response, y = expression,
+                                         fill = tmz_response)) +
+      geom_boxplot(outlier.shape = NA, alpha = 0.7, width = 0.6) +
+      geom_jitter(width = 0.15, size = 2, alpha = 0.5) +
+      scale_fill_manual(values = c("NonResponder" = colors$non_responder,
+                                    "Responder" = colors$responder)) +
+      labs(x = "", y = "Normalized Expression (VST)",
+           title = paste0(gene_name_target, " Expression")) +
+      theme_fig3 +
+      theme(legend.position = "none")
 
-  pdf(file.path(fig_dir, "Fig3_top_candidate.pdf"), width = 12, height = 6)
+    # KM curve
+    surv_data_plot$os_time <- as.numeric(surv_data_plot$os_days)
+    surv_data_plot$os_status <- as.numeric(surv_data_plot$os_status)
+    surv_data_plot <- surv_data_plot[!is.na(surv_data_plot$os_time), ]
+
+    # Use optimal cutpoint from surv_cutpoint
+    sc <- surv_cutpoint(surv_data_plot, time = "os_time", event = "os_status",
+                        variables = "expression")
+    surv_data_plot$group <- ifelse(surv_data_plot$expression >= sc$cutpoint$cutpoint,
+                                    "High", "Low")
+
+    fit <- survfit(Surv(os_time, os_status) ~ group, data = surv_data_plot)
+    p_km <- ggsurvplot(
+      fit, data = surv_data_plot,
+      pval = TRUE, pval.size = 6, risk.table = FALSE,
+      palette = c(colors$high, colors$low),
+      title = paste0(gene_name_target, " - Overall Survival"),
+      xlab = "Time (days)", ylab = "Survival Probability",
+      legend.labs = c("High expression", "Low expression"),
+      font.x = 18, font.y = 18, font.tickslab = 15,
+      font.legend = 15, font.title = c(21, "bold"),
+      ggtheme = theme_fig3
+    )
+
+    list(box = p_box, km = p_km$plot)
+  }
+
+  # Generate panels for H19 and LINC01936
+  h19_panels <- make_candidate_panels("H19", "A")
+  linc01936_panels <- make_candidate_panels("LINC01936", "B")
+
+  # Combine into 2x2 layout: top row = H19, bottom row = LINC01936
+  pdf(file.path(fig_dir, "Fig3_top_candidate.pdf"), width = 14, height = 10)
   grid.arrange(
-    fig3a, fig3b$plot,
-    ncol = 2, widths = c(1, 1.5)
+    h19_panels$box, h19_panels$km,
+    linc01936_panels$box, linc01936_panels$km,
+    ncol = 2, nrow = 2,
+    widths = c(1, 1.5)
   )
   dev.off()
 
-  cat(sprintf("  Figure 3 saved: %s\n", gene_name))
+  cat("  Figure 3 saved: H19 & LINC01936 (4-panel)\n")
 }
 
 
@@ -233,25 +273,39 @@ cat("[4/6] Figure 4: Functional analysis...\n")
 if (exists("ego_bp") && !is.null(ego_bp) && nrow(as.data.frame(ego_bp)) > 0) {
   # ── 4A: GO BP Dotplot ──
   fig4a <- dotplot(ego_bp, showCategory = 15,
-                    title = "A: GO Biological Process") +
+                    title = "GO Biological Process") +
     theme_pub +
-    theme(axis.text.y = element_text(size = 9))
-  save_fig(fig4a, "Fig4A_GO_BP", 200, 220)
+    theme(axis.text.y = element_text(size = 18),
+          axis.text.x = element_text(size = 18),
+          axis.title = element_text(size = 21),
+          plot.title = element_text(size = 24, face = "bold", hjust = 0.5),
+          legend.text = element_text(size = 17),
+          legend.title = element_text(size = 18))
+  save_fig(fig4a, "Fig4A_GO_BP", 220, 240)
 }
 
 if (exists("ekegg") && !is.null(ekegg) && nrow(as.data.frame(ekegg)) > 0) {
   # ── 4B: KEGG Dotplot ──
   fig4b <- dotplot(ekegg, showCategory = 15,
-                    title = "B: KEGG Pathway") +
+                    title = "KEGG Pathway") +
     theme_pub +
-    theme(axis.text.y = element_text(size = 9))
-  save_fig(fig4b, "Fig4B_KEGG", 200, 200)
+    theme(axis.text.y = element_text(size = 18),
+          axis.text.x = element_text(size = 18),
+          axis.title = element_text(size = 21),
+          plot.title = element_text(size = 24, face = "bold", hjust = 0.5),
+          legend.text = element_text(size = 17),
+          legend.title = element_text(size = 18))
+  save_fig(fig4b, "Fig4B_KEGG", 220, 240)
 }
 
 if (exists("gsea_go") && !is.null(gsea_go) && nrow(as.data.frame(gsea_go)) > 0) {
   # ── 4C: GSEA plot ──
   fig4c <- gseaplot2(gsea_go, geneSetID = 1:3,
-                      title = "C: Gene Set Enrichment Analysis")
+                      title = "Gene Set Enrichment Analysis",
+                      base_size = 17)
+  # Apply bold title to the top subplot
+  fig4c[[1]] <- fig4c[[1]] +
+    theme(plot.title = element_text(size = 21, face = "bold", hjust = 0.5))
   ggsave(file.path(fig_dir, "Fig4C_GSEA.pdf"), fig4c,
          width = 200, height = 150, units = "mm", dpi = 300)
 }

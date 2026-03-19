@@ -2,21 +2,21 @@
 # ============================================================================
 # Disk-Efficient Pipeline Runner
 #
-# 전체 파이프라인을 샘플 단위로 실행하며, 각 단계 완료 후 중간 파일을 삭제.
-# 디스크 사용량을 최소화하면서도 재현성은 스크립트로 보장.
+# Runs the full pipeline sample-by-sample, removing intermediate files after each step.
+# Minimizes disk usage while ensuring reproducibility through scripts.
 #
-# 디스크 사용 패턴:
-#   Raw FASTQ (1 sample)   : ~20 GB    ← 처리 후 유지 (controlled access 재다운로드 어려움)
-#   Trimmed FASTQ (1 sample): ~16 GB   ← alignment 후 삭제
-#   BAM (1 sample)          : ~15 GB   ← featureCounts 후 삭제
-#   동시 최대 사용: ~51 GB/sample + Raw FASTQ 전체
+# Disk usage pattern:
+#   Raw FASTQ (1 sample)    : ~20 GB    ← retained after processing (re-download from controlled access is difficult)
+#   Trimmed FASTQ (1 sample): ~16 GB    ← deleted after alignment
+#   BAM (1 sample)          : ~15 GB    ← deleted after featureCounts
+#   Peak concurrent usage   : ~51 GB/sample + all raw FASTQs
 #
-# 최종 보존 파일:
-#   - Raw FASTQ (전체)           ← 재현성의 핵심 (약 600-1200 GB)
-#   - featureCounts 결과          ← < 1 GB
-#   - QC reports (FastQC/MultiQC) ← < 1 GB
-#   - STAR Log.final.out          ← alignment 통계 (< 1 MB/sample)
-#   - R 분석 결과 전체            ← < 5 GB
+# Files retained permanently:
+#   - Raw FASTQ (all samples)         ← core of reproducibility (~600-1200 GB)
+#   - featureCounts output            ← < 1 GB
+#   - QC reports (FastQC/MultiQC)     ← < 1 GB
+#   - STAR Log.final.out              ← alignment statistics (< 1 MB/sample)
+#   - All R analysis results          ← < 5 GB
 #
 # Usage:
 #   bash scripts/run_pipeline_batched.sh [--keep-bam] [--keep-trimmed]

@@ -2,8 +2,8 @@
 # ============================================================================
 # Disk Usage Monitor
 #
-# 파이프라인 실행 중 디스크 사용량을 모니터링합니다.
-# 별도 터미널에서 실행: watch -n 30 bash scripts/disk_usage_monitor.sh
+# Monitors disk usage during pipeline execution.
+# Run in a separate terminal: watch -n 30 bash scripts/disk_usage_monitor.sh
 # ============================================================================
 
 PROJECT_DIR="/media/jaeil/ff387598-88d2-44f2-b68e-cf799d26fb68/lncRNA-GBM-TMZ"

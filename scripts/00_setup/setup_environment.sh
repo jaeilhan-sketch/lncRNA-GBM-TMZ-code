@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # ============================================================================
 # Phase 0: Environment Setup
-# - Conda 환경 생성
-# - Reference genome 및 annotation 다운로드
-# - STAR genome index 빌드
+# - Create conda environment
+# - Download reference genome and annotation
+# - Build STAR genome index
 # ============================================================================
 set -euo pipefail
 
@@ -15,7 +15,7 @@ echo "============================================"
 echo " Phase 0: Environment Setup"
 echo "============================================"
 
-# ── 1. Conda 환경 생성 ──
+# ── 1. Create conda environment ──
 echo "[1/4] Creating conda environment..."
 if conda env list | grep -q "lncrna-gbm-tmz"; then
     echo "  Environment 'lncrna-gbm-tmz' already exists. Skipping."
@@ -25,7 +25,7 @@ fi
 
 echo "  Activate with: conda activate lncrna-gbm-tmz"
 
-# ── 2. Reference Genome 다운로드 ──
+# ── 2. Download reference genome ──
 echo "[2/4] Downloading GRCh38 reference genome..."
 GENOME_FA="${REF_DIR}/genome/GRCh38.primary_assembly.genome.fa"
 if [[ ! -f "${GENOME_FA}" ]]; then
@@ -37,7 +37,7 @@ else
     echo "  Genome FASTA already exists. Skipping."
 fi
 
-# ── 3. GENCODE Annotation 다운로드 ──
+# ── 3. Download GENCODE annotation ──
 echo "[3/4] Downloading GENCODE v44 annotation..."
 GTF_FILE="${REF_DIR}/annotation/gencode.v44.annotation.gtf"
 if [[ ! -f "${GTF_FILE}" ]]; then
@@ -49,7 +49,7 @@ else
     echo "  GTF annotation already exists. Skipping."
 fi
 
-# ── 4. STAR Genome Index 빌드 ──
+# ── 4. Build STAR genome index ──
 echo "[4/4] Building STAR genome index..."
 STAR_INDEX="${REF_DIR}/index/star"
 if [[ -f "${STAR_INDEX}/SA" ]]; then

@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # ============================================================================
-# Figure 1: Study Design Overview (연구 설계 개요도)
+# Figure 1: Study Design Overview
 #
 # Professional study design flowchart using ggplot2 + grid
 # Output: results/figures/Fig1_study_design.pdf
